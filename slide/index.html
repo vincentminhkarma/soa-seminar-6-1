@@ -1573,7 +1573,7 @@
           <div class="principle">
             <h3>Lỗi cũng là một phần hợp đồng.</h3>
             <p>422: đầu vào sai. 503: chưa cấu hình gateway/model. 502: upstream hoặc phản hồi AI lỗi. 403: gọi AI qua
-              tunnel bị chặn. Không âm thầm đổi AI sang regex.</p>
+              tunnel bị chặn; 429: hết lượt AI công khai. Không âm thầm đổi AI sang regex.</p>
           </div>
           <div class="principle">
             <h3>Dữ liệu chuẩn chưa chắc dữ liệu đúng.</h3>
@@ -1611,7 +1611,7 @@
               </div>
               <div>
                 <dt>unittest</dt>
-                <dd>10 test chạy offline, AI được giả lập, không tốn phí.</dd>
+                <dd>12 test chạy offline, AI được giả lập, không tốn phí.</dd>
               </div>
               <div>
                 <dt>Swagger · curl · REST Client</dt>
@@ -1632,7 +1632,7 @@
   routers/         endpoint: nhận URL + JSON
   services/        regex, AI, tool, tồn kho giả lập
   static/ui.html   giao diện web
-tests/test_api.py  10 test offline, giả lập AI
+tests/test_api.py  12 test offline, giả lập AI
 client/            bên gọi: chỉ dùng HTTP
 slide/index.html   bài trình bày này
 requirements.txt   5 thư viện cần cài
@@ -1666,7 +1666,11 @@ class Booking(BaseModel):
             <pre class="code">@router.post('/api/v1/extract-booking')
 async def extract(request: Input, http_request: Request):
     if request.mode != 'regex' and not is_local(http_request):
-        raise HTTPException(403, ...)  # qua tunnel chỉ dùng regex
+        if not PUBLIC_AI_LIMIT:              # mặc định 0: tunnel chỉ regex
+            raise HTTPException(403, ...)
+        if ai_gateway.public_used >= PUBLIC_AI_LIMIT:
+            raise HTTPException(429, ...)    # hết lượt AI công khai
+        ai_gateway.public_used += 1
     return await run_extraction(request)</pre>
           </div>
           <div class="principle">
@@ -1743,7 +1747,7 @@ cd soa-seminar-6-1</pre>
           <li>
             <div>
               <h3>Tạo môi trường ảo, cài thư viện <small>3–5 phút</small></h3>
-              <p><b>Cách nhanh:</b> một lệnh làm hết bước 03–04, chạy 10 test rồi mở Swagger. Lần sau chạy lại chỉ mất vài
+              <p><b>Cách nhanh:</b> một lệnh làm hết bước 03–04, chạy 12 test rồi mở Swagger. Lần sau chạy lại chỉ mất vài
                 giây.</p>
               <div class="cmd mac">
                 <pre class="code">bash start.sh</pre>
@@ -1875,7 +1879,7 @@ python client/experiment.py --mode regex</pre>
                 <pre class="code">.\.venv\Scripts\python.exe -m unittest -v
 .\.venv\Scripts\python.exe client\experiment.py --mode regex</pre>
               </div>
-              <p class="check"><code>Ran 10 tests … OK</code>. Thực nghiệm in <code>"correct": 6</code> trên
+              <p class="check"><code>Ran 12 tests … OK</code>. Thực nghiệm in <code>"correct": 6</code> trên
                 <code>"count": 8</code>: regex trượt câu “Phòng tiêu chuẩn…” và câu đảo thứ tự ngày. Đúng thiết kế, đây
                 là chỗ AI phát huy.</p>
             </div>
@@ -1921,7 +1925,9 @@ ngrok http 8000</pre>
               </div>
               <p class="check">Chép địa chỉ <code>https://…</code> ở dòng <b>Forwarding</b>, mở địa chỉ đó thêm
                 <code>/docs</code> trên điện thoại dùng 4G, gửi request <code>mode: regex</code>: cùng JSON như trên
-                máy. Gửi <code>mode: openai</code> qua tunnel nhận <code>403</code>, cố ý để bảo vệ key.</p>
+                máy. Gửi <code>mode: openai</code> qua tunnel nhận <code>403</code>, cố ý để bảo vệ key. Muốn cho lớp thử AI:
+                đặt <code>PUBLIC_AI_LIMIT = 30</code> trong <code>app/config.py</code> rồi chạy lại service; hết lượt nhận
+                <code>429</code>.</p>
             </div>
           </li>
           <li>
@@ -1961,7 +1967,7 @@ ngrok http 8000</pre>
           </p>
           <ul class="links">
             <li><a href="https://github.com/vincentminhkarma/soa-seminar-6-1" target="_blank" rel="noopener">Mã nguồn
-                trên GitHub ↗</a><span>Service, 10 test, thực nghiệm 8 mẫu, demo.http</span></li>
+                trên GitHub ↗</a><span>Service, 12 test, thực nghiệm 8 mẫu, demo.http</span></li>
             <li><a href="https://github.com/vincentminhkarma/soa-seminar-6-1/blob/main/docs/HUONG_DAN_CAI_DAT.md"
                 target="_blank" rel="noopener">Hướng dẫn cài đặt từng bước ↗</a><span>Windows và macOS, bật AI, ngrok, lỗi
                 thường gặp</span></li>
@@ -2009,7 +2015,7 @@ ngrok http 8000</pre>
               tools nhiều lượt gọi nên không so tốc độ như một lượt extraction.</p>
           </div>
         </div>
-        <p class="note">Khi chia sẻ qua ngrok: dùng regex. Tunnel chỉ chuyển tiếp HTTP, không tự thêm xác thực và không
+        <p class="note">Khi chia sẻ qua ngrok: mặc định chỉ regex, AI mở có giới hạn lượt. Tunnel chỉ chuyển tiếp HTTP, không tự thêm xác thực và không
           biến laptop thành hosting lâu dài.</p>
       </div>
     </section>

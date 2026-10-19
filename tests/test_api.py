@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, patch
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from app.main import app
+from app.routers import booking, gateway as gateway_router
 from app.services import ai_gateway, extraction, inventory
 
 
@@ -146,6 +147,27 @@ class ServiceTests(unittest.TestCase):
             self.assertEqual(client.post('/api/gateway/select', json={'model': 'manual-id', 'base_url': typo['base_url']}).json(), {'model': 'manual-id'})
             self.assertEqual(ai_gateway.gateway, {**typo, 'model': 'manual-id'})
             self.assertEqual((ai_gateway.pending, ai_gateway.source), ({}, 'ui'))
+
+    def test_public_ai_limit(self):
+        async def local_app(scope, receive, send):
+            scope['client'] = ('127.0.0.1', 1234)
+            await app(scope, receive, send)
+        local, tunnel = TestClient(local_app), TestClient(app, headers={'X-Forwarded-For': '203.0.113.5'})
+        body = {'raw_text': 'Standard', 'mode': 'openai'}
+        reply = {'choices': [{'message': {'content': '{"room_type":"STANDARD","check_in":null,"check_out":null}'}}]}
+        with patch.dict(ai_gateway.gateway, {'base_url': 'https://gateway.example/v1', 'api_key': 'secret', 'model': 'm'}), \
+                patch.object(ai_gateway, 'public_used', 0), \
+                patch.object(ai_gateway, 'gateway_request', new_callable=AsyncMock, return_value=reply):
+            with patch.object(booking, 'PUBLIC_AI_LIMIT', 0), patch.object(gateway_router, 'PUBLIC_AI_LIMIT', 0):
+                self.assertEqual(tunnel.post('/api/v1/extract-booking', json=body).status_code, 403)
+                self.assertIn("Number('0')", tunnel.get('/').text)
+            with patch.object(booking, 'PUBLIC_AI_LIMIT', 2), patch.object(gateway_router, 'PUBLIC_AI_LIMIT', 2):
+                self.assertIn("Number('2')", tunnel.get('/').text)
+                self.assertEqual(local.post('/api/v1/extract-booking', json=body).status_code, 200)  # máy chủ không bị tính
+                self.assertEqual([tunnel.post('/api/v1/extract-booking', json=body).status_code for _ in range(3)], [200, 200, 429])
+                self.assertIn("Number('0')", tunnel.get('/').text)
+                self.assertEqual(tunnel.post('/api/v1/extract-booking', json={**body, 'mode': 'regex'}).status_code, 200)
+                self.assertEqual(tunnel.post('/api/gateway/select', json={'model': 'x'}).status_code, 403)  # cấu hình vẫn chỉ local
 
 
 if __name__ == '__main__':

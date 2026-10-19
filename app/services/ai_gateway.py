@@ -14,6 +14,7 @@ gateway = {'base_url': '', 'api_key': '', 'model': ''}  # cấu hình đang dùn
 pending = {}  # gateway vừa nhập ở nút "Kiểm tra"; chỉ áp dụng khi bấm "Sử dụng model"
 source = ''   # cấu hình đang dùng đến từ đâu: 'env' (file .env) hoặc 'ui' (giao diện, tạm thời)
 ADMIN_TOKEN = token_urlsafe(32)  # đổi mỗi lần khởi động; giao diện local dùng để cấu hình gateway
+public_used = 0  # số lượt AI khách qua ngrok đã dùng (so với PUBLIC_AI_LIMIT)
 
 
 def load_gateway(base_url, api_key, model):

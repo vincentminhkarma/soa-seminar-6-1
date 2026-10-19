@@ -175,7 +175,7 @@ python client/experiment.py --mode regex
 
 **Kết quả mong đợi:**
 
-- `unittest` in `Ran 10 tests ... OK`. Các test này chạy offline và giả lập AI nên không tốn phí.
+- `unittest` in `Ran 12 tests ... OK`. Các test này chạy offline và giả lập AI nên không tốn phí.
 - `experiment.py` gửi 8 tin nhắn mẫu tới service đang chạy, rồi in `"correct": 6` trên `"count": 8`. Regex trượt câu "Phòng tiêu chuẩn…" và câu đảo thứ tự ngày; đây là giới hạn có chủ đích để so sánh với AI.
 
 Lưu kết quả ra file nếu cần: `python client/experiment.py --mode regex > regex-results.json`.
@@ -367,6 +367,15 @@ ngrok http 8000
 
 - Request `mode: regex` trả đúng JSON như khi chạy trên máy.
 - Request `mode: openai` hoặc `tools` qua tunnel nhận `403`. Đây là chặn có chủ đích, vì endpoint chưa có xác thực và cần bảo vệ key cùng chi phí.
+- Mở địa chỉ Forwarding (không thêm `/docs`) sẽ thấy giao diện rút gọn: chỉ mục **Phía client**, nhãn **Phiên public · chỉ regex**. Mục **Kết nối gateway** và **Bên trong service** chỉ hiện khi mở `http://127.0.0.1:8000` trên máy chạy service.
+
+**5. (Tùy chọn) Cho khách thử AI với số lượt giới hạn:**
+
+1. Bật AI trước (bước 8) và kiểm tra trên máy mình rằng `openai` chạy được.
+2. Mở `app/config.py`, sửa `PUBLIC_AI_LIMIT = 0` thành số lượt cho phép, ví dụ `PUBLIC_AI_LIMIT = 30`.
+3. Khởi động lại service (Ctrl+C rồi chạy lại). Không cần khởi động lại ngrok.
+
+Khách mở link ngrok sẽ chọn được cả 3 mode, nhãn góc phải hiện số lượt AI còn lại (tính lúc tải trang). Số lượt dùng chung cho mọi khách; hết lượt thì gọi AI nhận `429`, regex vẫn chạy. Mỗi lượt `tools` gọi model tối đa 3 lần, nên chi phí tối đa khoảng `3 × PUBLIC_AI_LIMIT` lần gọi. Khởi động lại service thì số lượt đếm lại từ đầu. Bạn gọi trên máy mình không bị tính lượt.
 
 Nếu dùng `client/demo.http`, hãy dán địa chỉ Forwarding vào dòng `@tunnel` rồi chạy các khối E.
 
@@ -393,5 +402,6 @@ Nếu dùng `client/demo.http`, hãy dán địa chỉ Forwarding vào dòng `@t
 | Service dừng ngay khi khởi động, báo `validation error ... base_url` hoặc `api_key` | Giá trị trong `.env` sai: URL phải là HTTPS công khai; nếu đã điền URL thì phải có key. Sửa `.env` hoặc xoá hết giá trị để chạy chỉ regex |
 | 503 khi gọi `openai` / `tools` | Chưa cấu hình gateway hoặc chưa chọn model (bước 8) |
 | 502 khi gọi `openai` / `tools` | Gateway từ chối hoặc không kết nối được. Kiểm tra key, quota, model ID và mạng |
-| 403 khi gọi AI | Đang gọi qua ngrok hoặc từ máy khác; AI chỉ cho gọi trên máy chạy service |
+| 403 khi gọi AI | Đang gọi qua ngrok với `PUBLIC_AI_LIMIT = 0`; gọi trên máy chạy service, hoặc mở số lượt ở bước 9 mục 5 |
+| 429 khi gọi AI qua ngrok | Đã dùng hết `PUBLIC_AI_LIMIT` lượt; tăng số trong `app/config.py` rồi khởi động lại service |
 | ngrok báo lỗi authtoken | Kiểm tra lại authtoken của ngrok, đừng dùng API key AI |

@@ -6,6 +6,7 @@ from time import perf_counter
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
+from app.config import PUBLIC_AI_LIMIT
 from app.dependencies import is_local, local_admin
 from app.schemas import ExperimentInput, GatewayInput, ModelInput
 from app.services import ai_gateway
@@ -21,9 +22,12 @@ def home(request: Request):
     page = UI_FILE.read_text(encoding='utf-8')
     # Chèn vào chuỗi JS nháy đơn hay kép đều an toàn, dù editor có format lại ui.html
     model = json.dumps(ai_gateway.gateway['model'] if local else '')[1:-1].replace("'", '\\u0027').replace('<', '\\u003c')
+    ready = ai_gateway.gateway['base_url'] and ai_gateway.gateway['model']
+    public_left = max(PUBLIC_AI_LIMIT - ai_gateway.public_used, 0) if ready else 0  # khách chỉ thấy mode AI khi còn lượt
     page = (page.replace('__ADMIN_TOKEN__', ai_gateway.ADMIN_TOKEN if local else '')
                 .replace('__ACTIVE_MODEL__', model)
-                .replace('__GATEWAY_SOURCE__', ai_gateway.source if local else ''))
+                .replace('__GATEWAY_SOURCE__', ai_gateway.source if local else '')
+                .replace('__PUBLIC_AI_LEFT__', str(public_left)))
     return HTMLResponse(page, headers={'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY'})
 
 

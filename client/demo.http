@@ -213,6 +213,7 @@ ngrok-skip-browser-warning: true
 }
 
 ### E3. POST qua tunnel, mode AI → 403 (bảo vệ key và chi phí)
+# Nếu đặt PUBLIC_AI_LIMIT > 0 trong app/config.py: 200 cho tới khi hết lượt, sau đó 429
 POST {{tunnel}}/api/v1/extract-booking
 Content-Type: application/json
 ngrok-skip-browser-warning: true

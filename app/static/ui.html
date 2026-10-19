@@ -1313,7 +1313,7 @@
             <button id="run" class="primary run"><svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="m9 5 10 7-10 7Z" />
               </svg><span id="run-label">Gửi yêu cầu</span></button>
-            <p class="note">Dữ liệu giả lập, không tạo booking thật. Gateway có thể tính phí; qua ngrok chỉ dùng regex.
+            <p class="note">Dữ liệu giả lập, không tạo booking thật. Gateway có thể tính phí; qua ngrok, AI bị tắt hoặc giới hạn số lượt.
             </p>
           </div>
         </div>
@@ -1527,7 +1527,8 @@
     let activeModel = '__ACTIVE_MODEL__';
     const gatewaySource = '__GATEWAY_SOURCE__'; // 'env' (file .env), 'ui' (nhập trên giao diện) hoặc rỗng
     const hints = { regex: 'Đối chứng bằng quy tắc cố định. Không cần key, không sử dụng token.', openai: 'Gateway trích xuất dữ liệu thành JSON. Trường thiếu trả null; không tự chuyển sang regex khi lỗi.', tools: 'Trích xuất → AI đề xuất tool → backend tra cứu → AI trả lời. Tối đa ba lượt gọi model.' };
-    if (!adminToken) { document.querySelectorAll('[data-admin]').forEach(node => node.hidden = true); el('mode').replaceChildren(new Option('Regex · không gọi AI', 'regex')); el('active-model').textContent = 'Phiên public · chỉ regex'; }
+    const publicAiLeft = Number('__PUBLIC_AI_LEFT__') || 0; // số lượt AI còn lại cho khách qua ngrok (PUBLIC_AI_LIMIT)
+    if (!adminToken) { document.querySelectorAll('[data-admin]').forEach(node => node.hidden = true); if (publicAiLeft) { el('active-model').textContent = 'Phiên public · còn ' + publicAiLeft + ' lượt AI chung'; } else { el('mode').replaceChildren(new Option('Regex · không gọi AI', 'regex')); el('active-model').textContent = 'Phiên public · chỉ regex'; } }
     if (activeModel) { el('active-model').textContent = activeModel + (gatewaySource === 'env' ? ' · từ .env' : ''); el('gateway-status').classList.add('ready'); }
     if (gatewaySource === 'env') { el('env-note').hidden = false; el('env-note').textContent = 'Đang dùng gateway từ file .env' + (activeModel ? ' với model ' + activeModel : ', chưa có GATEWAY_MODEL') + '. Chỉ muốn đổi model: để trống Base URL, nhập Model ID rồi bấm “Sử dụng model”. Mọi thay đổi ở đây là tạm thời; chạy lại service sẽ quay về .env.'; }
     el('mode').onchange = () => { el('method-help').textContent = hints[el('mode').value]; };

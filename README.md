@@ -38,7 +38,7 @@ Script tự làm hết các bước sau:
 1. Tìm Python 3.11+ trên máy.
 2. Tạo môi trường ảo `.venv` và file `.env` trống.
 3. Cài thư viện.
-4. Chạy 10 test.
+4. Chạy 12 test.
 5. Khởi động service và mở Swagger trên trình duyệt.
 
 Lần đầu mất khoảng 1 phút. Từ lần thứ hai, script bỏ qua phần đã cài nên service lên chỉ sau vài giây. Nhấn Ctrl+C để dừng.
@@ -126,9 +126,10 @@ Cả hai trạng thái đều **không** có nghĩa là đã đặt phòng: serv
 | Mã | Khi nào |
 |---|---|
 | 200 | Xử lý xong, trả `EXTRACTED` hoặc `NEED_MORE_INFO` |
-| 403 | Gọi AI hoặc cấu hình gateway qua tunnel / từ máy khác |
+| 403 | Cấu hình gateway qua tunnel / từ máy khác, hoặc gọi AI qua tunnel khi `PUBLIC_AI_LIMIT = 0` |
 | 405 | Sai phương thức HTTP |
 | 422 | Đầu vào sai: văn bản trống, ngày trả trước ngày nhận, `mode` không hợp lệ |
+| 429 | Khách qua tunnel đã dùng hết `PUBLIC_AI_LIMIT` lượt AI |
 | 502 | Gateway lỗi hoặc AI trả sai định dạng |
 | 503 | Chưa cấu hình gateway hoặc model |
 
@@ -149,6 +150,7 @@ Cách mở `.env`, gợi ý Base URL của từng nhà cung cấp và cách lấ
 **Các thông số khác** nằm trong [`app/config.py`](app/config.py):
 
 - `HOST`, `PORT`
+- `PUBLIC_AI_LIMIT`: số lượt `openai`/`tools` cho khách qua ngrok (mặc định `0`, chỉ regex)
 - `GATEWAY_TIMEOUT_SECONDS`, `TEMPERATURE`
 - `MAX_TEXT_LENGTH`, `MAX_NIGHTS`
 - `CAPACITY`, `RESERVATIONS` (tồn kho giả lập)
@@ -159,13 +161,13 @@ Sửa xong thì khởi động lại service.
 ## Kiểm thử
 
 ```bash
-python -m unittest -v                     # 10 test offline, AI được giả lập, không tốn phí
+python -m unittest -v                     # 12 test offline, AI được giả lập, không tốn phí
 python client/experiment.py --mode regex  # chấm 8 tin nhắn mẫu qua HTTP (service phải đang chạy)
 ```
 
 Kết quả mong đợi:
 
-- `Ran 10 tests ... OK`.
+- `Ran 12 tests ... OK`.
 - Thực nghiệm in `"correct": 6` trên `"count": 8`. Regex không hiểu cách viết "phòng tiêu chuẩn" và câu đảo thứ tự ngày; đó là giới hạn có chủ đích để so sánh với AI.
 
 ## Cấu trúc thư mục
@@ -194,8 +196,8 @@ start.sh, start.bat        gọi start.py trên macOS/Linux và Windows
 
 ## Giới hạn
 
-- Đây là demo học tập: không có xác thực người dùng, không rate limit, không lưu dữ liệu, không tạo booking thật.
+- Đây là demo học tập: không có xác thực người dùng, không rate limit (trừ hạn mức AI cho khách qua ngrok), không lưu dữ liệu, không tạo booking thật.
 - Tồn kho là dữ liệu giả lập cho tháng 10/2026; mỗi lần tra tối đa 30 đêm.
 - Regex chỉ nhận tên phòng `STANDARD`, `DELUXE`, `SUITE` và ngày có đủ năm.
-- Khi chia sẻ qua ngrok, chỉ chế độ `regex` được phép, để bảo vệ key và chi phí.
+- Khi chia sẻ qua ngrok, mặc định chỉ chế độ `regex` được phép, để bảo vệ key và chi phí. Muốn cho khách thử AI, đặt `PUBLIC_AI_LIMIT` trong `app/config.py` (vd `30`); hết lượt thì nhận `429`. Cấu hình gateway và lab luôn chỉ trên máy chạy service.
 - Prompt không phải hàng rào bảo mật tuyệt đối. Backend vẫn kiểm tra mọi đầu ra của AI trước khi dùng.
