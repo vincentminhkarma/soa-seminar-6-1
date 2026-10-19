@@ -1,7 +1,7 @@
 # Kịch bản gọi API khi thuyết trình: bấm "Send Request" phía trên mỗi khối.
 # Cần extension REST Client (humao.rest-client) trong VS Code hoặc Antigravity.
 # Cài đặt và chạy service: xem phần "Cài đặt" trong slide/index.html.
-# Đây là phía consumer: chỉ gửi HTTP tới service, không import code trong thư mục service/.
+# Đây là phía consumer: chỉ gửi HTTP tới service, không import code trong thư mục app/.
 #
 # Service chỉ có GET (đọc hợp đồng/tài liệu) và POST (gửi phiếu để xử lý, cấu hình gateway).
 # Không có PUT/DELETE vì service không lưu tài nguyên nào để sửa/xoá (khối B3 chứng minh: 405).

@@ -1,5 +1,5 @@
-# Cấu hình của AI Booking Service. Muốn đổi thông số thì sửa ở đây, không cần mở soa_service.py.
-# Sửa xong phải khởi động lại service (Ctrl+C rồi chạy lại python service/soa_service.py).
+# Cấu hình của AI Booking Service. Muốn đổi thông số thì sửa ở đây, không cần mở code khác.
+# Sửa xong phải khởi động lại service (Ctrl+C rồi chạy lại python -m app.main).
 import os
 from datetime import date
 from pathlib import Path

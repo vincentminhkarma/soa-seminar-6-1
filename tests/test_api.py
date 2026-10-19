@@ -2,20 +2,21 @@ import unittest
 from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
-import soa_service as service
+from app.main import app
+from app.services import ai_gateway, extraction, inventory
 
 
 class ServiceTests(unittest.TestCase):
     def test_gateway_configuration_blocks_remote_clients(self):
-        client = TestClient(service.app)
+        client = TestClient(app)
         self.assertEqual(client.post('/api/gateway/models', json={'base_url': 'https://gateway.example/v1', 'api_key': 'secret'}).status_code, 403)
 
     def test_gateway_models_and_chat_use_configured_provider(self):
         async def local_app(scope, receive, send):
             scope['client'] = ('127.0.0.1', 1234)
-            await service.app(scope, receive, send)
-        client = TestClient(local_app, headers={'X-Gateway-Token': service.ADMIN_TOKEN})
-        with patch.object(service, 'gateway_request', new_callable=AsyncMock) as upstream:
+            await app(scope, receive, send)
+        client = TestClient(local_app, headers={'X-Gateway-Token': ai_gateway.ADMIN_TOKEN})
+        with patch.object(ai_gateway, 'gateway_request', new_callable=AsyncMock) as upstream:
             upstream.return_value = {'data': [{'id': 'model-demo'}]}
             result = client.post('/api/gateway/models', json={'base_url': 'https://gateway.example/v1/', 'api_key': 'secret'})
             self.assertEqual(result.status_code, 200)
@@ -31,12 +32,12 @@ class ServiceTests(unittest.TestCase):
     def test_experiment_records_invalid_output_and_isolates_model(self):
         async def local_app(scope, receive, send):
             scope['client'] = ('127.0.0.1', 1234)
-            await service.app(scope, receive, send)
-        client = TestClient(local_app, headers={'X-Gateway-Token': service.ADMIN_TOKEN})
+            await app(scope, receive, send)
+        client = TestClient(local_app, headers={'X-Gateway-Token': ai_gateway.ADMIN_TOKEN})
         body = {'raw_text': 'Standard', 'mode': 'openai', 'model': 'trial-b', 'prompt': 'Return JSON'}
-        self.assertEqual(TestClient(service.app).post('/api/local/experiment', json=body).status_code, 403)
-        with patch.dict(service.gateway, {'base_url': 'https://gateway.example/v1', 'api_key': 'secret', 'model': 'original'}):
-            with patch.object(service, 'gateway_request', new_callable=AsyncMock) as upstream:
+        self.assertEqual(TestClient(app).post('/api/local/experiment', json=body).status_code, 403)
+        with patch.dict(ai_gateway.gateway, {'base_url': 'https://gateway.example/v1', 'api_key': 'secret', 'model': 'original'}):
+            with patch.object(ai_gateway, 'gateway_request', new_callable=AsyncMock) as upstream:
                 upstream.return_value = {'choices': [{'message': {'content': 'not json'}}], 'usage': {'total_tokens': 7}}
                 data = client.post('/api/local/experiment', json=body).json()
                 self.assertFalse(data['ok'])
@@ -46,18 +47,18 @@ class ServiceTests(unittest.TestCase):
                 self.assertEqual(upstream.call_args.kwargs['payload']['model'], 'trial-b')
                 self.assertEqual(upstream.call_args.kwargs['payload']['messages'][0]['content'], 'Return JSON')
                 self.assertEqual(data['category'], 'output_validation')
-                self.assertEqual(service.gateway['model'], 'original')
+                self.assertEqual(ai_gateway.gateway['model'], 'original')
                 self.assertNotIn('secret', str(data))
 
     def test_lab_trace_history_and_full_tool_flow(self):
         async def local_app(scope, receive, send):
             scope['client'] = ('127.0.0.1', 1234)
-            await service.app(scope, receive, send)
-        client = TestClient(local_app, headers={'X-Gateway-Token': service.ADMIN_TOKEN})
+            await app(scope, receive, send)
+        client = TestClient(local_app, headers={'X-Gateway-Token': ai_gateway.ADMIN_TOKEN})
         booking = '{"room_type":"DELUXE","check_in":"2026-10-22","check_out":"2026-10-23"}'
         tool_call = {'id': 'call_1', 'type': 'function', 'function': {'name': 'check_room_availability', 'arguments': booking}}
-        with patch.dict(service.gateway, {'base_url': 'https://gateway.example/v1', 'api_key': 'secret', 'model': 'm'}):
-            with patch.object(service, 'gateway_request', new_callable=AsyncMock) as upstream:
+        with patch.dict(ai_gateway.gateway, {'base_url': 'https://gateway.example/v1', 'api_key': 'secret', 'model': 'm'}):
+            with patch.object(ai_gateway, 'gateway_request', new_callable=AsyncMock) as upstream:
                 upstream.side_effect = [{'choices': [{'message': {'content': booking}}]},
                                         {'choices': [{'message': {'role': 'assistant', 'content': None, 'tool_calls': [tool_call]}}]},
                                         {'choices': [{'message': {'content': 'Còn phòng Deluxe.'}}]}]
@@ -77,37 +78,37 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(data['requests'][2]['messages'][-2]['role'], 'tool')
 
     def test_missing_fields_are_not_invented(self):
-        self.assertEqual(service.extract_regex('Xin chào').model_dump(), {'room_type': None, 'check_in': None, 'check_out': None})
+        self.assertEqual(extraction.extract_regex('Xin chào').model_dump(), {'room_type': None, 'check_in': None, 'check_out': None})
 
     def test_vietnamese_dates(self):
-        booking = service.extract_regex('Deluxe từ 20/10/2026 đến 22/10/2026')
+        booking = extraction.extract_regex('Deluxe từ 20/10/2026 đến 22/10/2026')
         self.assertEqual(booking.check_in.isoformat(), '2026-10-20')
 
     def test_overlap_and_checkout_boundary(self):
-        self.assertEqual(service.check_room_availability('DELUXE', '2026-10-20', '2026-10-21')['available'], False)
-        self.assertEqual(service.check_room_availability('DELUXE', '2026-10-22', '2026-10-23')['available'], True)
+        self.assertEqual(inventory.check_room_availability('DELUXE', '2026-10-20', '2026-10-21')['available'], False)
+        self.assertEqual(inventory.check_room_availability('DELUXE', '2026-10-22', '2026-10-23')['available'], True)
 
     def test_reversed_dates(self):
         with self.assertRaises(ValueError):
-            service.check_room_availability('DELUXE', '2026-10-22', '2026-10-20')
+            inventory.check_room_availability('DELUXE', '2026-10-22', '2026-10-20')
 
     def test_api_contract(self):
-        client = TestClient(service.app)
+        client = TestClient(app)
         response = client.post('/api/v1/extract-booking', json={'raw_text': 'Standard 2026-10-20 đến 2026-10-22'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['mode'], 'regex')
         self.assertEqual(client.post('/api/v1/extract-booking', json={'raw_text': '   '}).status_code, 422)
 
     def test_load_gateway_from_env_values(self):
-        with patch.dict(service.gateway, {'base_url': '', 'api_key': '', 'model': ''}):
-            service.load_gateway('', '', '')
-            self.assertEqual(service.gateway['base_url'], '')
-            service.load_gateway('https://gateway.example/v1/', 'secret', 'm1')
-            self.assertEqual(service.gateway, {'base_url': 'https://gateway.example/v1', 'api_key': 'secret', 'model': 'm1'})
+        with patch.dict(ai_gateway.gateway, {'base_url': '', 'api_key': '', 'model': ''}):
+            ai_gateway.load_gateway('', '', '')
+            self.assertEqual(ai_gateway.gateway['base_url'], '')
+            ai_gateway.load_gateway('https://gateway.example/v1/', 'secret', 'm1')
+            self.assertEqual(ai_gateway.gateway, {'base_url': 'https://gateway.example/v1', 'api_key': 'secret', 'model': 'm1'})
         with self.assertRaises(ValueError):
-            service.load_gateway('http://localhost:11434/v1', 'secret', 'm1')
+            ai_gateway.load_gateway('http://localhost:11434/v1', 'secret', 'm1')
         with self.assertRaises(ValueError):
-            service.load_gateway('https://gateway.example/v1', '', 'm1')
+            ai_gateway.load_gateway('https://gateway.example/v1', '', 'm1')
 
 
 if __name__ == '__main__':

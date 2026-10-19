@@ -1585,9 +1585,9 @@
     </section>
     <section id="stack" class="rule">
       <div class="wrap">
-        <h2>Từ sơ đồ đến<br><span class="purple">một file Python.</span></h2>
-        <p class="lead muted">Service gói gọn trong <code>soa_service.py</code>, khoảng 280 dòng. Mỗi khái niệm vừa
-          trình bày trỏ tới đúng một đoạn code mở ra đọc được.</p>
+        <h2>Từ sơ đồ đến<br><span class="purple">từng thư mục code.</span></h2>
+        <p class="lead muted">Cấu trúc theo chuẩn FastAPI: router nhận hợp đồng, service xử lý nghiệp vụ,
+          <code>ai_gateway</code> gọi dịch vụ ngoài. Mỗi khái niệm vừa trình bày trỏ tới đúng một file.</p>
         <div class="twocol">
           <div>
             <h3>Công cụ sử dụng</h3>
@@ -1625,18 +1625,19 @@
           </div>
           <div>
             <h3>Bản đồ mã nguồn</h3>
-            <pre class="code">service/            bên cung cấp: AI Booking Service
-  soa_service.py    hợp đồng, regex, AI, tool
-  config.py         cổng, timeout, prompt, tồn kho
-  ui.html           giao diện web của service
-  test_soa.py       10 test offline, giả lập AI
-client/             bên gọi: chỉ dùng HTTP
-  demo.http         request mẫu, bấm để gửi
-  experiment.py     chấm 8 tin nhắn mẫu qua HTTP
-slide/index.html    bài trình bày này
-requirements.txt    5 thư viện cần cài
-.env                key gateway, không lên GitHub</pre>
-            <p class="note"><code>client/</code> không import gì từ <code>service/</code>: ranh giới dịch vụ nhìn thấy
+            <pre class="code">app/               bên cung cấp: AI Booking Service
+  main.py          tạo app, gắn router, chạy server
+  config.py        cổng, timeout, prompt, tồn kho
+  schemas.py       hợp đồng dữ liệu (Pydantic)
+  routers/         endpoint: nhận URL + JSON
+  services/        regex, AI, tool, tồn kho giả lập
+  static/ui.html   giao diện web
+tests/test_api.py  10 test offline, giả lập AI
+client/            bên gọi: chỉ dùng HTTP
+slide/index.html   bài trình bày này
+requirements.txt   5 thư viện cần cài
+.env               key gateway, không lên GitHub</pre>
+            <p class="note"><code>client/</code> không import gì từ <code>app/</code>: ranh giới dịch vụ nhìn thấy
               ngay trên cây thư mục. Không cần database, Docker hay Spring Boot; tồn kho phòng là dữ liệu giả lập.</p>
           </div>
         </div>
@@ -1644,11 +1645,11 @@ requirements.txt    5 thư viện cần cài
           <div class="principle">
             <div>
               <h3>Hợp đồng là một class.</h3>
-              <p class="muted">FastAPI đọc class này để kiểm tra request và sinh Swagger. Gửi sai hình dạng nhận 422
-                trước khi chạm tới logic.</p>
+              <p class="muted"><code>app/schemas.py</code> · FastAPI đọc class này để kiểm tra request và sinh Swagger.
+                Gửi sai hình dạng nhận 422 trước khi chạm tới logic.</p>
             </div>
             <pre class="code">class Input(BaseModel):
-    raw_text: str = Field(min_length=1, max_length=2000)
+    raw_text: str = Field(min_length=1, max_length=MAX_TEXT_LENGTH)
     mode: Literal['regex', 'openai', 'tools'] = 'regex'
 
 class Booking(BaseModel):
@@ -1659,20 +1660,20 @@ class Booking(BaseModel):
           <div class="principle">
             <div>
               <h3>Endpoint là cửa tiếp nhận.</h3>
-              <p class="muted">Consumer chỉ biết URL và JSON. Đổi regex sang AI bên trong không bắt consumer sửa code.
-              </p>
+              <p class="muted"><code>app/routers/booking.py</code> · Consumer chỉ biết URL và JSON. Đổi regex sang AI
+                bên trong không bắt consumer sửa code.</p>
             </div>
-            <pre class="code">@app.post('/api/v1/extract-booking')
+            <pre class="code">@router.post('/api/v1/extract-booking')
 async def extract(request: Input, http_request: Request):
-    if request.mode != 'regex':
-        ...  # AI chỉ cho gọi từ máy local, qua tunnel → 403
+    if request.mode != 'regex' and not is_local(http_request):
+        raise HTTPException(403, ...)  # qua tunnel chỉ dùng regex
     return await run_extraction(request)</pre>
           </div>
           <div class="principle">
             <div>
               <h3>Cách 1 · Regex.</h3>
-              <p class="muted">Miễn phí, nhanh, nhưng chỉ hiểu tên phòng chuẩn và ngày đủ năm. Viết “phòng tiêu chuẩn”
-                là trượt.</p>
+              <p class="muted"><code>app/services/extraction.py</code> · Miễn phí, nhanh, nhưng chỉ hiểu tên phòng chuẩn
+                và ngày đủ năm. Viết “phòng tiêu chuẩn” là trượt.</p>
             </div>
             <pre class="code">room = re.search(r'\b(STANDARD|DELUXE|SUITE)\b', text, re.I)
 dates = re.findall(
@@ -1681,8 +1682,8 @@ dates = re.findall(
           <div class="principle">
             <div>
               <h3>Cách 2, 3 · AI và Tool Calling.</h3>
-              <p class="muted">AI chỉ đề xuất tên hàm và tham số. Backend kiểm tra, so khớp với booking đã xác thực, rồi
-                mới chạy hàm tồn kho.</p>
+              <p class="muted"><code>app/services/extraction.py</code>, hàm tồn kho ở <code>inventory.py</code> · AI chỉ
+                đề xuất tên hàm và tham số. Backend kiểm tra, so khớp với booking đã xác thực, rồi mới chạy hàm tồn kho.</p>
             </div>
             <pre class="code"># Lượt 1: AI trích xuất JSON, Pydantic kiểm tra
 result = await call(messages, response_format={'type': 'json_object'})
@@ -1736,7 +1737,7 @@ cd soa-seminar-6-1</pre>
               <p class="note">Không dùng Git: trên trang GitHub bấm <b>Code → Download ZIP</b>, giải nén, rồi mở
                 terminal tại thư mục vừa giải nén (thư mục có <code>requirements.txt</code>).</p>
               <p class="check">Lệnh <code class="mac">ls</code><code class="win">dir</code> liệt kê được
-                <code>service</code>, <code>client</code>, <code>slide</code> và <code>requirements.txt</code>.</p>
+                <code>app</code>, <code>client</code>, <code>slide</code>, <code>tests</code> và <code>requirements.txt</code>.</p>
             </div>
           </li>
           <li>
@@ -1762,10 +1763,10 @@ python -m pip install -r requirements.txt</pre>
             <div>
               <h3>Chạy service <small>1 phút</small></h3>
               <div class="cmd mac">
-                <pre class="code">python service/soa_service.py</pre>
+                <pre class="code">python -m app.main</pre>
               </div>
               <div class="cmd win">
-                <pre class="code">.\.venv\Scripts\python.exe service\soa_service.py</pre>
+                <pre class="code">.\.venv\Scripts\python.exe -m app.main</pre>
               </div>
               <p class="check">Terminal in <code>Uvicorn running on http://127.0.0.1:8000</code>. <b>Giữ nguyên terminal
                   này</b>, tắt nó là service dừng.</p>
@@ -1788,13 +1789,18 @@ python -m pip install -r requirements.txt</pre>
             <p>Đang đứng sai thư mục. <code>cd</code> vào <code>soa-seminar-6-1</code>, nơi có file requirements.txt.</p>
           </details>
           <details>
+            <summary>No module named app</summary>
+            <p>Lệnh <code>python -m app.main</code> phải chạy từ thư mục gốc (nơi thấy thư mục <code>app</code>), không
+              chạy từ bên trong <code>app/</code>.</p>
+          </details>
+          <details>
             <summary>No module named uvicorn / fastapi</summary>
             <p>Đang dùng Python ngoài môi trường ảo. macOS/Linux chạy <code>source .venv/bin/activate</code>; Windows
               gọi <code>.\.venv\Scripts\python.exe</code> như các lệnh trên.</p>
           </details>
           <details>
             <summary>Address already in use: cổng 8000 đang bận</summary>
-            <p>Đổi <code>PORT = 8001</code> trong <code>service/config.py</code> rồi chạy lại, mở
+            <p>Đổi <code>PORT = 8001</code> trong <code>app/config.py</code> rồi chạy lại, mở
               <code>http://127.0.0.1:8001/docs</code>, chạy thực nghiệm kèm <code>--base http://127.0.0.1:8001</code>,
               ngrok dùng <code>ngrok http 8001</code>.</p>
           </details>
@@ -1854,11 +1860,11 @@ python -m pip install -r requirements.txt</pre>
                   rồi kích hoạt <code>.venv</code></span>.</p>
               <div class="cmd mac">
                 <pre class="code">source .venv/bin/activate
-python -m unittest discover -s service -v
+python -m unittest -v
 python client/experiment.py --mode regex</pre>
               </div>
               <div class="cmd win">
-                <pre class="code">.\.venv\Scripts\python.exe -m unittest discover -s service -v
+                <pre class="code">.\.venv\Scripts\python.exe -m unittest -v
 .\.venv\Scripts\python.exe client\experiment.py --mode regex</pre>
               </div>
               <p class="check"><code>Ran 10 tests … OK</code>. Thực nghiệm in <code>"correct": 6</code> trên
