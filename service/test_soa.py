@@ -98,6 +98,17 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(response.json()['mode'], 'regex')
         self.assertEqual(client.post('/api/v1/extract-booking', json={'raw_text': '   '}).status_code, 422)
 
+    def test_load_gateway_from_env_values(self):
+        with patch.dict(service.gateway, {'base_url': '', 'api_key': '', 'model': ''}):
+            service.load_gateway('', '', '')
+            self.assertEqual(service.gateway['base_url'], '')
+            service.load_gateway('https://gateway.example/v1/', 'secret', 'm1')
+            self.assertEqual(service.gateway, {'base_url': 'https://gateway.example/v1', 'api_key': 'secret', 'model': 'm1'})
+        with self.assertRaises(ValueError):
+            service.load_gateway('http://localhost:11434/v1', 'secret', 'm1')
+        with self.assertRaises(ValueError):
+            service.load_gateway('https://gateway.example/v1', '', 'm1')
+
 
 if __name__ == '__main__':
     unittest.main()

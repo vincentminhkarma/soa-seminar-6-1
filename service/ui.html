@@ -620,7 +620,8 @@
       font-size: 14px;
       color: var(--ink);
       padding: 10px 14px;
-      border-left: 3px solid var(--purple);
+      border: 1px solid var(--line);
+      border-radius: 6px;
       background: #fff
     }
 
@@ -1521,9 +1522,10 @@
     const adminToken = '__ADMIN_TOKEN__';
     const el = id => document.getElementById(id);
     const h = (tag, props, ...kids) => { const node = Object.assign(document.createElement(tag), props); node.append(...kids.filter(kid => kid != null && kid !== false && kid !== '')); return node; };
-    let activeModel = '';
+    let activeModel = '__ACTIVE_MODEL__';
     const hints = { regex: 'Đối chứng bằng quy tắc cố định. Không cần key, không sử dụng token.', openai: 'Gateway trích xuất dữ liệu thành JSON. Trường thiếu trả null; không tự chuyển sang regex khi lỗi.', tools: 'Trích xuất → AI đề xuất tool → backend tra cứu → AI trả lời. Tối đa ba lượt gọi model.' };
     if (!adminToken) { document.querySelectorAll('[data-admin]').forEach(node => node.hidden = true); el('mode').replaceChildren(new Option('Regex · không gọi AI', 'regex')); el('active-model').textContent = 'Phiên public · chỉ regex'; }
+    if (activeModel) { el('active-model').textContent = activeModel + ' · từ .env'; el('gateway-status').classList.add('ready'); }
     el('mode').onchange = () => { el('method-help').textContent = hints[el('mode').value]; };
     document.querySelectorAll('[data-sample]').forEach(button => button.onclick = () => { el('text').value = button.dataset.sample; el('text').focus(); });
     function message(text, state) { el('connection').textContent = text; el('connection').dataset.state = state; }

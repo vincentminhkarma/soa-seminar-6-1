@@ -1611,7 +1611,7 @@
               </div>
               <div>
                 <dt>unittest</dt>
-                <dd>9 test chạy offline, AI được giả lập, không tốn phí.</dd>
+                <dd>10 test chạy offline, AI được giả lập, không tốn phí.</dd>
               </div>
               <div>
                 <dt>Swagger · curl · REST Client</dt>
@@ -1627,13 +1627,15 @@
             <h3>Bản đồ mã nguồn</h3>
             <pre class="code">service/            bên cung cấp: AI Booking Service
   soa_service.py    hợp đồng, regex, AI, tool
+  config.py         cổng, timeout, prompt, tồn kho
   ui.html           giao diện web của service
-  test_soa.py       9 test offline, giả lập AI
+  test_soa.py       10 test offline, giả lập AI
 client/             bên gọi: chỉ dùng HTTP
   demo.http         request mẫu, bấm để gửi
   experiment.py     chấm 8 tin nhắn mẫu qua HTTP
 slide/index.html    bài trình bày này
-requirements.txt    4 thư viện cần cài</pre>
+requirements.txt    5 thư viện cần cài
+.env                key gateway, không lên GitHub</pre>
             <p class="note"><code>client/</code> không import gì từ <code>service/</code>: ranh giới dịch vụ nhìn thấy
               ngay trên cây thư mục. Không cần database, Docker hay Spring Boot; tồn kho phòng là dữ liệu giả lập.</p>
           </div>
@@ -1760,12 +1762,10 @@ python -m pip install -r requirements.txt</pre>
             <div>
               <h3>Chạy service <small>1 phút</small></h3>
               <div class="cmd mac">
-                <pre
-                  class="code">python -m uvicorn soa_service:app --app-dir service --host 127.0.0.1 --port 8000 --no-proxy-headers</pre>
+                <pre class="code">python service/soa_service.py</pre>
               </div>
               <div class="cmd win">
-                <pre
-                  class="code">.\.venv\Scripts\python.exe -m uvicorn soa_service:app --app-dir service --host 127.0.0.1 --port 8000 --no-proxy-headers</pre>
+                <pre class="code">.\.venv\Scripts\python.exe service\soa_service.py</pre>
               </div>
               <p class="check">Terminal in <code>Uvicorn running on http://127.0.0.1:8000</code>. <b>Giữ nguyên terminal
                   này</b>, tắt nó là service dừng.</p>
@@ -1794,8 +1794,9 @@ python -m pip install -r requirements.txt</pre>
           </details>
           <details>
             <summary>Address already in use: cổng 8000 đang bận</summary>
-            <p>Chạy uvicorn với <code>--port 8001</code>, mở <code>http://127.0.0.1:8001/docs</code>, chạy thực nghiệm
-              kèm <code>--base http://127.0.0.1:8001</code>, ngrok dùng <code>ngrok http 8001</code>.</p>
+            <p>Đổi <code>PORT = 8001</code> trong <code>service/config.py</code> rồi chạy lại, mở
+              <code>http://127.0.0.1:8001/docs</code>, chạy thực nghiệm kèm <code>--base http://127.0.0.1:8001</code>,
+              ngrok dùng <code>ngrok http 8001</code>.</p>
           </details>
         </div>
       </div>
@@ -1860,7 +1861,7 @@ python client/experiment.py --mode regex</pre>
                 <pre class="code">.\.venv\Scripts\python.exe -m unittest discover -s service -v
 .\.venv\Scripts\python.exe client\experiment.py --mode regex</pre>
               </div>
-              <p class="check"><code>Ran 9 tests … OK</code>. Thực nghiệm in <code>"correct": 6</code> trên
+              <p class="check"><code>Ran 10 tests … OK</code>. Thực nghiệm in <code>"correct": 6</code> trên
                 <code>"count": 8</code>: regex trượt câu “Phòng tiêu chuẩn…” và câu đảo thứ tự ngày. Đúng thiết kế, đây
                 là chỗ AI phát huy.</p>
             </div>
@@ -1912,14 +1913,27 @@ ngrok http 8000</pre>
           <li>
             <div>
               <h3>Thử AI thật <small>tùy chọn · cần API key</small></h3>
-              <p>Mở <a href="http://127.0.0.1:8000" target="_blank" rel="noopener">http://127.0.0.1:8000</a> trên chính
+              <p><b>Cách 1, trên giao diện.</b> Mở <a href="http://127.0.0.1:8000" target="_blank" rel="noopener">http://127.0.0.1:8000</a> trên chính
                 máy chạy service → nhập Base URL gateway và key → <b>Kiểm tra &amp; tải models</b> → chọn model → <b>Sử
                   dụng model</b>. Sau đó gửi lại bước 05 với <code>"mode": "openai"</code> hoặc <code>"tools"</code>.
               </p>
+              <p><b>Cách 2, file .env ở thư mục gốc</b>, để không phải gõ key trên màn hình. Lệnh dưới tạo file (không ghi
+                đè file đã có) rồi mở ra để điền ba biến <code>GATEWAY_BASE_URL</code>, <code>GATEWAY_API_KEY</code>,
+                <code>GATEWAY_MODEL</code>:</p>
+              <div class="cmd mac">
+                <pre class="code">[ -f .env ] || printf '# Cau hinh gateway AI\nGATEWAY_BASE_URL=\nGATEWAY_API_KEY=\nGATEWAY_MODEL=\n' &gt; .env; open -e .env</pre>
+              </div>
+              <div class="cmd win">
+                <pre class="code">if (!(Test-Path .env)) { Set-Content .env "# Cau hinh gateway AI`nGATEWAY_BASE_URL=`nGATEWAY_API_KEY=`nGATEWAY_MODEL=" }; notepad .env</pre>
+              </div>
+              <p>Điền sau dấu <code>=</code>, không dấu cách, không dấu nháy, ví dụ
+                <code>GATEWAY_BASE_URL=https://api.openai.com/v1</code>. Lưu file, rồi khởi động lại service (Ctrl+C,
+                chạy lại lệnh bước 04).</p>
               <p class="check">Mode <code>tools</code> với “Deluxe từ 22/10/2026 đến 23/10/2026” trả
                 <code>"available": true</code> và có <code>tool_trace</code>; đổi thành 20 đến 21 thì hết phòng.</p>
-              <p class="note">Có phí theo token, chỉ chạy khi chủ key đồng ý. Key giữ trong RAM của service, không ghi
-                ra file. Không có key vẫn hoàn thành đủ bước 01–07.</p>
+              <p class="note">Có phí theo token, chỉ chạy khi chủ key đồng ý. Key nhập trên giao diện chỉ giữ trong RAM;
+                file <code>.env</code> nằm trong <code>.gitignore</code> nên không lên GitHub. Không có key vẫn hoàn thành đủ
+                bước 01–07.</p>
             </div>
           </li>
         </ol>
@@ -1933,7 +1947,7 @@ ngrok http 8000</pre>
           </p>
           <ul class="links">
             <li><a href="https://github.com/vincentminhkarma/soa-seminar-6-1" target="_blank" rel="noopener">Mã nguồn
-                trên GitHub ↗</a><span>Service, 9 test, thực nghiệm 8 mẫu, demo.http</span></li>
+                trên GitHub ↗</a><span>Service, 10 test, thực nghiệm 8 mẫu, demo.http</span></li>
             <li><a href="#lab">Hướng dẫn cài đặt từng bước</a><span>Windows và macOS, kết quả mong đợi, lỗi thường gặp,
                 bài tập</span></li>
             <li><a href="../video/soa-6-1-giai-thich.mp4" target="_blank" rel="noopener">Video minh họa · 8 phút
