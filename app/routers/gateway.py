@@ -21,16 +21,19 @@ def home(request: Request):
     page = UI_FILE.read_text(encoding='utf-8')
     # Chèn vào chuỗi JS nháy đơn hay kép đều an toàn, dù editor có format lại ui.html
     model = json.dumps(ai_gateway.gateway['model'] if local else '')[1:-1].replace("'", '\\u0027').replace('<', '\\u003c')
-    page = page.replace('__ADMIN_TOKEN__', ai_gateway.ADMIN_TOKEN if local else '').replace('__ACTIVE_MODEL__', model)
+    page = (page.replace('__ADMIN_TOKEN__', ai_gateway.ADMIN_TOKEN if local else '')
+                .replace('__ACTIVE_MODEL__', model)
+                .replace('__GATEWAY_SOURCE__', ai_gateway.source if local else ''))
     return HTMLResponse(page, headers={'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY'})
 
 
 @router.post('/api/gateway/models')
 async def gateway_models(body: GatewayInput, request: Request):
     local_admin(request)
-    config = {'base_url': body.base_url, 'api_key': body.api_key, 'model': ''}
-    ai_gateway.gateway.update(config)
-    result = await ai_gateway.gateway_request(config, '/models')
+    # Chỉ ghi nhận để "Sử dụng model" áp dụng; cấu hình đang chạy (vd từ .env) giữ nguyên dù kết nối lỗi
+    ai_gateway.pending.clear()
+    ai_gateway.pending.update(base_url=body.base_url, api_key=body.api_key)
+    result = await ai_gateway.gateway_request({**ai_gateway.pending, 'model': ''}, '/models')
     try:
         models = sorted({row['id'] for row in result['data'] if isinstance(row.get('id'), str)})
     except (KeyError, TypeError, AttributeError) as error:
@@ -41,12 +44,22 @@ async def gateway_models(body: GatewayInput, request: Request):
 @router.post('/api/gateway/select')
 def select_model(body: ModelInput, request: Request):
     local_admin(request)
-    if not ai_gateway.gateway['base_url']:
-        raise HTTPException(409, 'Nhập gateway và kiểm tra kết nối trước')
-    ai_gateway.gateway['model'] = body.model.strip()
-    if not ai_gateway.gateway['model']:
+    model = body.model.strip()
+    if not model:
         raise HTTPException(422, 'Model ID không được trống')
-    return {'model': ai_gateway.gateway['model']}
+    form_url = body.base_url.strip().rstrip('/')
+    if form_url and form_url == ai_gateway.pending.get('base_url'):
+        # Áp dụng gateway vừa bấm "Kiểm tra" (kể cả khi /models lỗi, để nhập model thủ công)
+        ai_gateway.gateway.update(ai_gateway.pending)
+        ai_gateway.pending.clear()
+    elif form_url:
+        raise HTTPException(409, 'Bấm "Kiểm tra & tải models" với Base URL này trước, hoặc để trống Base URL để chỉ đổi model')
+    elif not ai_gateway.gateway['base_url']:
+        raise HTTPException(409, 'Nhập gateway và kiểm tra kết nối trước')
+    # Base URL trống: chỉ đổi model của gateway đang dùng (vd từ .env)
+    ai_gateway.gateway['model'] = model
+    ai_gateway.source = 'ui'  # ghi đè tạm thời; chạy lại service sẽ quay về .env
+    return {'model': model}
 
 
 @router.post('/api/local/experiment')

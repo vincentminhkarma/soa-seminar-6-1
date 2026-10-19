@@ -114,13 +114,15 @@ X-Gateway-Token: {{token}}
   "api_key": "{{apiKey}}"
 }
 
-### C2. POST: chọn model (dán ID từ kết quả C1 vào @model ở đầu file)
+### C2. POST: áp dụng gateway của C1 với model đã chọn (dán ID từ kết quả C1 vào @model ở đầu file)
+# Bỏ dòng base_url nếu chỉ muốn đổi model của gateway đang dùng (vd cấu hình từ .env)
 POST {{base}}/api/gateway/select
 Content-Type: application/json
 X-Gateway-Token: {{token}}
 
 {
-  "model": "{{model}}"
+  "model": "{{model}}",
+  "base_url": "{{gateway}}"
 }
 
 ############################################################

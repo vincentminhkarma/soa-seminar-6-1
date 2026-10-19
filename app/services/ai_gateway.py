@@ -10,15 +10,19 @@ from fastapi import HTTPException
 from app.config import GATEWAY_API_KEY, GATEWAY_BASE_URL, GATEWAY_MODEL, GATEWAY_TIMEOUT_SECONDS, TEMPERATURE
 from app.schemas import GatewayInput
 
-gateway = {'base_url': '', 'api_key': '', 'model': ''}  # chỉ nằm trong RAM, không trả key về client
+gateway = {'base_url': '', 'api_key': '', 'model': ''}  # cấu hình đang dùng, chỉ nằm trong RAM, không trả key về client
+pending = {}  # gateway vừa nhập ở nút "Kiểm tra"; chỉ áp dụng khi bấm "Sử dụng model"
+source = ''   # cấu hình đang dùng đến từ đâu: 'env' (file .env) hoặc 'ui' (giao diện, tạm thời)
 ADMIN_TOKEN = token_urlsafe(32)  # đổi mỗi lần khởi động; giao diện local dùng để cấu hình gateway
 
 
 def load_gateway(base_url, api_key, model):
+    global source
     if not (base_url or api_key):
         return  # .env trống: chỉ regex, cấu hình gateway trên giao diện
     checked = GatewayInput(base_url=base_url, api_key=api_key)  # cùng kiểm tra như nhập trên giao diện
     gateway.update(base_url=checked.base_url, api_key=checked.api_key, model=model)
+    source = 'env'
 
 
 load_gateway(GATEWAY_BASE_URL, GATEWAY_API_KEY, GATEWAY_MODEL)

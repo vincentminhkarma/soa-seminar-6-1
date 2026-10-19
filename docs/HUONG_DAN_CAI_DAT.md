@@ -122,6 +122,19 @@ python -m app.main
 
 Giữ nguyên terminal này trong suốt quá trình dùng, vì tắt nó là service dừng. Các bước sau mở thêm terminal thứ hai.
 
+**Khi sửa code**, chạy kèm `--reload`: mỗi lần lưu file `.py` trong `app/`, service tự khởi động lại.
+
+```bash
+python -m app.main --reload
+```
+
+Không nên dùng `--reload` khi demo, vì mỗi lần service khởi động lại sẽ:
+
+- mất cấu hình đã nhập trên giao diện (quay về `.env`);
+- đổi token local, nên phải tải lại trang http://127.0.0.1:8000.
+
+Sửa `app/static/ui.html` thì không cần reload, chỉ cần tải lại trang trên trình duyệt. Sửa `.env` thì phải tự chạy lại service.
+
 ## 5. Gửi request đầu tiên qua Swagger
 
 1. Mở http://127.0.0.1:8000/docs.
@@ -299,6 +312,13 @@ Nếu URL không phải HTTPS công khai, hoặc đã điền URL mà thiếu ke
 1. Mở http://127.0.0.1:8000 trên chính máy chạy service.
 2. Nhập **Base URL** và **API key** → bấm **Kiểm tra & tải models**.
 3. Chọn model trong danh sách, hoặc gõ vào ô **Model ID thủ công** → bấm **Sử dụng model**.
+
+Cách hai nút hoạt động:
+
+- **Kiểm tra & tải models** chỉ thử kết nối, **chưa** đổi cấu hình đang dùng. Gõ sai URL hoặc key thì cấu hình từ `.env` vẫn chạy bình thường.
+- **Sử dụng model** mới áp dụng gateway đang có trong ô Base URL. Nếu `/models` lỗi, bạn vẫn có thể gõ model ID thủ công và bấm nút này.
+- **Đã cấu hình bằng `.env` và chỉ muốn đổi model:** để trống ô Base URL, gõ Model ID, rồi bấm **Sử dụng model**. Không cần nhập lại key.
+- **Mọi thay đổi trên giao diện chỉ là tạm thời.** Chạy lại service sẽ quay về giá trị trong `.env`.
 
 ### Thử AI
 

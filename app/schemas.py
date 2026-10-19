@@ -58,6 +58,7 @@ class GatewayInput(BaseModel):
 
 class ModelInput(BaseModel):
     model: str = Field(min_length=1, max_length=200)
+    base_url: str = Field(default='', max_length=500)  # Base URL đang có trong form; trống = chỉ đổi model
 
 
 class ChatTurn(BaseModel):
