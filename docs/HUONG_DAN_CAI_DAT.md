@@ -7,6 +7,24 @@ Tài liệu đi từng bước, từ một máy chưa cài gì đến lúc gọi
 
 Mỗi lệnh có hai phiên bản: **macOS / Linux** dùng Terminal, **Windows** dùng PowerShell.
 
+## Cách nhanh: một lệnh
+
+Sau khi làm xong bước 1 (cài Python, Git) và bước 2 (tải mã nguồn), chạy một lệnh từ thư mục dự án:
+
+```bash
+bash start.sh       # macOS / Linux
+```
+
+```powershell
+.\start.bat         # Windows (hoặc nhấp đúp start.bat trong File Explorer)
+```
+
+Script tự làm bước 3 và bước 4, chạy kiểm thử, rồi mở Swagger. Bạn tiếp tục từ bước 5.
+
+Thêm `--setup-only` nếu chỉ muốn cài mà chưa chạy service, hoặc `--no-open` để không mở trình duyệt.
+
+Các bước dưới đây mô tả từng việc script làm, dùng khi muốn làm tay hoặc khi script báo lỗi.
+
 ## Mục lục
 
 1. [Chuẩn bị công cụ](#1-chuẩn-bị-công-cụ)
@@ -63,6 +81,8 @@ Không dùng Git cũng được:
 **Kết quả mong đợi:** lệnh `ls` (macOS/Linux) hoặc `dir` (Windows) liệt kê được `app`, `client`, `docs`, `slide`, `tests` và `requirements.txt`.
 
 ## 3. Tạo môi trường ảo và cài thư viện
+
+Nếu đã chạy `start.sh` / `start.bat` thì bỏ qua bước 3 và bước 4.
 
 Môi trường ảo `.venv` giữ thư viện riêng cho dự án, không ảnh hưởng tới Python của máy.
 
@@ -293,6 +313,10 @@ Nếu dùng `client/demo.http`, hãy dán địa chỉ Forwarding vào dòng `@t
 
 | Lỗi | Cách xử lý |
 |---|---|
+| `permission denied: ./start.sh` | Chạy bằng `bash start.sh` thay vì `./start.sh` |
+| Windows hiện cảnh báo bảo mật khi mở `start.bat` tải từ ZIP | Chọn chạy tiếp, hoặc mở PowerShell trong thư mục dự án rồi gõ `.\start.bat` |
+| Script báo `Cổng 8000 đang được dùng` | Service đã chạy ở cửa sổ khác: tắt nó (Ctrl+C), hoặc đổi `PORT` trong `app/config.py` |
+| Script báo `Không tạo được .venv` trên Ubuntu/Debian | Chạy `sudo apt install python3-venv`, rồi chạy lại script |
 | `python3` / `py` không được nhận ra | Python chưa cài hoặc chưa có trong PATH. Cài lại (Windows tích **Add python.exe to PATH**), rồi mở terminal mới |
 | macOS báo `xcrun: error: invalid active developer path` khi gõ git | Chạy `xcode-select --install`, chờ cài xong rồi gõ lại |
 | `Could not open requirements file` | Đang đứng sai thư mục; `cd` vào `soa-seminar-6-1` |

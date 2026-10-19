@@ -21,7 +21,38 @@ Cả ba chế độ xử lý dùng chung một endpoint, chọn bằng trường
 - Git, hoặc tải ZIP từ GitHub
 - Chế độ `openai` và `tools` cần thêm một gateway tương thích OpenAI, gồm Base URL HTTPS, API key và model ID. Chế độ `regex` không cần.
 
-## Cài đặt và chạy
+## Cài đặt và chạy bằng một lệnh
+
+Clone repo, rồi chạy script tương ứng với hệ điều hành:
+
+```bash
+git clone https://github.com/vincentminhkarma/soa-seminar-6-1.git
+cd soa-seminar-6-1
+bash start.sh          # macOS / Linux
+```
+
+Trên **Windows**: nhấp đúp `start.bat`, hoặc gõ `.\start.bat` trong PowerShell.
+
+Script tự làm hết các bước sau:
+
+1. Tìm Python 3.11+ trên máy.
+2. Tạo môi trường ảo `.venv` và file `.env` trống.
+3. Cài thư viện.
+4. Chạy 10 test.
+5. Khởi động service và mở Swagger trên trình duyệt.
+
+Lần đầu mất khoảng 1 phút. Từ lần thứ hai, script bỏ qua phần đã cài nên service lên chỉ sau vài giây. Nhấn Ctrl+C để dừng.
+
+| Tùy chọn | Tác dụng |
+|---|---|
+| `--setup-only` | Chỉ cài đặt và kiểm thử, không chạy service (hợp để chuẩn bị máy trước buổi học) |
+| `--no-open` | Không tự mở trình duyệt |
+
+Ví dụ: `bash start.sh --setup-only` hoặc `.\start.bat --no-open`.
+
+## Cài đặt và chạy từng bước
+
+Làm tay thay cho script, để hiểu từng việc script đang làm.
 
 **macOS / Linux**
 
@@ -152,6 +183,8 @@ client/                    consumer mẫu, chỉ gọi service qua HTTP
   experiment.py            chấm 8 tin nhắn mẫu
 slide/index.html           bài trình bày, mở bằng trình duyệt
 docs/HUONG_DAN_CAI_DAT.md  hướng dẫn chi tiết
+start.py                   cài đặt và chạy bằng một lệnh (chỉ dùng thư viện chuẩn)
+start.sh, start.bat        gọi start.py trên macOS/Linux và Windows
 ```
 
 ## Giới hạn

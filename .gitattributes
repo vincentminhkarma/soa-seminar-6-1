@@ -1,0 +1,3 @@
+# Giữ đúng ký tự xuống dòng cho script trên mọi hệ điều hành
+*.sh  text eol=lf
+*.bat text eol=crlf
