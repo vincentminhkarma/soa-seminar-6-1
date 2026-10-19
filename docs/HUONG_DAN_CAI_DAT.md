@@ -122,7 +122,7 @@ python -m app.main
 
 Giữ nguyên terminal này trong suốt quá trình dùng, vì tắt nó là service dừng. Các bước sau mở thêm terminal thứ hai.
 
-**Khi sửa code**, chạy kèm `--reload`: mỗi lần lưu file `.py` trong `app/`, service tự khởi động lại.
+**Khi sửa code**, chạy kèm `--reload`: mỗi lần lưu file `.py` trong `app/` hoặc file `.env`, service tự khởi động lại và nạp giá trị mới.
 
 ```bash
 python -m app.main --reload
@@ -133,7 +133,7 @@ Không nên dùng `--reload` khi demo, vì mỗi lần service khởi động l�
 - mất cấu hình đã nhập trên giao diện (quay về `.env`);
 - đổi token local, nên phải tải lại trang http://127.0.0.1:8000.
 
-Sửa `app/static/ui.html` thì không cần reload, chỉ cần tải lại trang trên trình duyệt. Sửa `.env` thì phải tự chạy lại service.
+Sửa `app/static/ui.html` thì không cần reload, chỉ cần tải lại trang trên trình duyệt. Sửa `.env` mà không chạy kèm `--reload` thì phải tự chạy lại service (Ctrl+C rồi chạy lại).
 
 ## 5. Gửi request đầu tiên qua Swagger
 

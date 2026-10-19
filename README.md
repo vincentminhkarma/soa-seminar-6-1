@@ -81,7 +81,7 @@ Khi terminal in `Uvicorn running on http://127.0.0.1:8000`, mở:
 - http://127.0.0.1:8000/docs để xem Swagger UI và gửi request thử
 - http://127.0.0.1:8000 để mở giao diện web (cấu hình gateway, thử ba chế độ)
 
-Khi sửa code, chạy `python -m app.main --reload`: service tự khởi động lại mỗi khi lưu file `.py` trong `app/`. Không dùng `--reload` khi demo.
+Khi sửa code, chạy `python -m app.main --reload`: service tự khởi động lại mỗi khi lưu file `.py` trong `app/` hoặc file `.env`. Không dùng `--reload` khi demo.
 
 Mọi lệnh đều chạy từ thư mục gốc `soa-seminar-6-1`. Hướng dẫn chi tiết từng bước, kèm cách bật AI, chia sẻ qua ngrok và xử lý lỗi, nằm ở [docs/HUONG_DAN_CAI_DAT.md](docs/HUONG_DAN_CAI_DAT.md).
 

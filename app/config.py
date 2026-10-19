@@ -14,7 +14,8 @@ PORT = 8000         # đổi cổng thì đổi luôn: ngrok http <PORT>, @base 
 PUBLIC_AI_LIMIT = 0
 
 # --- Gateway AI: giá trị bí mật nằm trong file .env ở thư mục gốc (không lên GitHub) ----
-load_dotenv(Path(__file__).resolve().parent.parent / '.env')
+ENV_FILE = Path(__file__).resolve().parent.parent / '.env'
+load_dotenv(ENV_FILE, override=True)  # override: khi --reload nạp lại, giá trị mới trong .env phải thắng giá trị cũ
 GATEWAY_BASE_URL = os.getenv('GATEWAY_BASE_URL', '').strip()  # vd https://api.openai.com/v1
 GATEWAY_API_KEY = os.getenv('GATEWAY_API_KEY', '').strip()
 GATEWAY_MODEL = os.getenv('GATEWAY_MODEL', '').strip()
