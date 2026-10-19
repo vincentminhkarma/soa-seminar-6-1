@@ -1,5 +1,4 @@
 import json
-import os
 import re
 from datetime import date, timedelta
 from pathlib import Path
@@ -7,7 +6,6 @@ from time import perf_counter
 from typing import Literal
 
 import httpx
-from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from urllib.parse import urlsplit
@@ -16,7 +14,6 @@ import socket
 from secrets import token_urlsafe
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-load_dotenv(Path(__file__).with_name('.env'))
 app = FastAPI(title='SOA Seminar: AI Booking Service', version='2.0')
 
 
@@ -181,7 +178,7 @@ async def chat(messages, config_override=None, **options):
 @app.get('/', response_class=HTMLResponse, include_in_schema=False)
 def home(request: Request):
     local = request.client and request.client.host in ('127.0.0.1', '::1') and not request.headers.get('x-forwarded-for') and not request.headers.get('forwarded')
-    page = Path(__file__).with_name('gateway_demo.html').read_text()
+    page = Path(__file__).with_name('ui.html').read_text()
     return HTMLResponse(page.replace('__ADMIN_TOKEN__', ADMIN_TOKEN if local else ''), headers={'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY'})
 
 

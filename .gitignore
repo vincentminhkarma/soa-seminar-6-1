@@ -6,3 +6,5 @@ __pycache__/
 video/*.mp4
 *-results.json
 *.md
+.vscode/
+client/openapi.json
