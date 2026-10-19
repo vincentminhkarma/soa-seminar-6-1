@@ -26,6 +26,21 @@ STAMP = VENV / '.requirements.sha256'  # requirements.txt đã cài; đổi file
 ENV_FILE = ROOT / '.env'
 ENV_TEMPLATE = ('# Cau hinh gateway AI cho che do openai/tools. De trong: service chi chay regex.\n'
                 'GATEWAY_BASE_URL=\nGATEWAY_API_KEY=\nGATEWAY_MODEL=\n')
+# Chạy trong .venv: đọc URL/key từ .env, in danh sách model; không bao giờ in key hay nội dung lỗi của gateway
+LIST_MODELS = '''
+import httpx
+from app.config import GATEWAY_BASE_URL as url, GATEWAY_API_KEY as key
+if not (url and key):
+    raise SystemExit('[LỖI] Chưa điền GATEWAY_BASE_URL và GATEWAY_API_KEY trong .env')
+try:
+    r = httpx.get(url.rstrip('/') + '/models', headers={'Authorization': 'Bearer ' + key}, timeout=30)
+except httpx.HTTPError:
+    raise SystemExit('[LỖI] Không kết nối được ' + url + ' - kiểm tra Base URL và mạng')
+if r.status_code != 200:
+    raise SystemExit('[LỖI] Gateway trả HTTP %d - kiểm tra Base URL và API key' % r.status_code)
+ids = sorted(m['id'] for m in r.json().get('data', []) if isinstance(m.get('id'), str))
+print('\\n'.join(ids) if ids else 'Gateway không trả danh sách model; hỏi nhà cung cấp model ID.')
+'''
 
 
 def step(text):
@@ -60,6 +75,7 @@ def main():
     parser = argparse.ArgumentParser(description='Cài đặt và chạy AI Booking Service.')
     parser.add_argument('--setup-only', action='store_true', help='chỉ cài đặt và kiểm thử, không chạy service')
     parser.add_argument('--no-open', action='store_true', help='không tự mở trình duyệt')
+    parser.add_argument('--models', action='store_true', help='in danh sách model của gateway khai báo trong .env rồi thoát')
     args = parser.parse_args()
 
     step('1/4  Môi trường ảo .venv')
@@ -84,6 +100,10 @@ def main():
         if not venv_run('-m', 'pip', 'install', '--disable-pip-version-check', '-r', 'requirements.txt'):
             fail('Cài thư viện thất bại. Kiểm tra mạng rồi chạy lại.')
         STAMP.write_text(digest)
+
+    if args.models:
+        step('Danh sách model của gateway trong .env')
+        sys.exit(0 if venv_run('-c', LIST_MODELS) else 1)
 
     step('3/4  Kiểm thử')
     if not venv_run('-m', 'unittest', '-q'):

@@ -47,6 +47,7 @@ Lần đầu mất khoảng 1 phút. Từ lần thứ hai, script bỏ qua phầ
 |---|---|
 | `--setup-only` | Chỉ cài đặt và kiểm thử, không chạy service (hợp để chuẩn bị máy trước buổi học) |
 | `--no-open` | Không tự mở trình duyệt |
+| `--models` | In danh sách model của gateway khai báo trong `.env` (không in key) |
 
 Ví dụ: `bash start.sh --setup-only` hoặc `.\start.bat --no-open`.
 
@@ -137,9 +138,11 @@ Cả hai trạng thái đều **không** có nghĩa là đã đặt phòng: serv
 |---|---|---|
 | `GATEWAY_BASE_URL` | Địa chỉ HTTPS công khai của gateway | `https://api.openai.com/v1` |
 | `GATEWAY_API_KEY` | API key của gateway | |
-| `GATEWAY_MODEL` | Model ID gateway hỗ trợ | |
+| `GATEWAY_MODEL` | Model ID gateway hỗ trợ; xem danh sách bằng `bash start.sh --models` | |
 
-Nếu không có `.env`, service chỉ chạy `regex`. Bạn vẫn có thể nhập gateway trên giao diện web; khi đó key chỉ giữ trong RAM. Cách tạo `.env` xem ở [mục 8 của hướng dẫn](docs/HUONG_DAN_CAI_DAT.md#8-bật-ai-chế-độ-openai-và-tools).
+`start.sh` / `start.bat` tạo sẵn `.env` trống ở lần chạy đầu. Khi các giá trị còn trống, service chỉ chạy `regex`. Bạn vẫn có thể nhập gateway trên giao diện web; khi đó key chỉ giữ trong RAM.
+
+Cách mở `.env`, gợi ý Base URL của từng nhà cung cấp và cách lấy model ID: xem [mục 8 của hướng dẫn](docs/HUONG_DAN_CAI_DAT.md#8-bật-ai-chế-độ-openai-và-tools).
 
 **Các thông số khác** nằm trong [`app/config.py`](app/config.py):
 

@@ -217,33 +217,80 @@ Có hai cách cấu hình:
 
 ### Cách A: file .env (cấu hình một lần, không phải gõ key mỗi lần chạy)
 
-**1. Tạo file `.env` và mở ra.** Lệnh dưới **không ghi đè** nếu file đã có:
+**1. Có file `.env` ở thư mục gốc.**
+
+`start.sh` / `start.bat` tự tạo file này (để trống) ở lần chạy đầu. Nếu làm tay, tạo bằng lệnh dưới; lệnh **không ghi đè** file đã có:
 
 ```bash
-# macOS
-[ -f .env ] || printf '# Cau hinh gateway AI\nGATEWAY_BASE_URL=\nGATEWAY_API_KEY=\nGATEWAY_MODEL=\n' > .env; open -e .env
+# macOS / Linux
+[ -f .env ] || printf '# Cau hinh gateway AI\nGATEWAY_BASE_URL=\nGATEWAY_API_KEY=\nGATEWAY_MODEL=\n' > .env
 ```
 
 ```powershell
 # Windows
-if (!(Test-Path .env)) { Set-Content .env "# Cau hinh gateway AI`nGATEWAY_BASE_URL=`nGATEWAY_API_KEY=`nGATEWAY_MODEL=" }; notepad .env
+if (!(Test-Path .env)) { Set-Content .env "# Cau hinh gateway AI`nGATEWAY_BASE_URL=`nGATEWAY_API_KEY=`nGATEWAY_MODEL=" }
 ```
 
-Trên Linux, thay `open -e .env` bằng `nano .env` hoặc trình soạn thảo bạn quen dùng.
+**2. Mở `.env`.**
 
-**2. Điền giá trị.** Viết ngay sau dấu `=`, không dấu cách, không dấu nháy:
+Dự án cấu hình VS Code ẩn `.env` khỏi Explorer, để key không lộ khi chia sẻ màn hình. Vì vậy hãy mở bằng lệnh:
+
+| Hệ điều hành | Lệnh |
+|---|---|
+| macOS | `open -e .env` (TextEdit), hoặc `code .env` nếu đã cài lệnh `code` |
+| Windows | `notepad .env` |
+| Linux | `nano .env` |
+
+**3. Chọn gateway và lấy API key.**
+
+Base URL phải là HTTPS công khai. Service tự nối thêm `/models` và `/chat/completions` vào sau địa chỉ này.
+
+| Nhà cung cấp | `GATEWAY_BASE_URL` | Lấy key ở |
+|---|---|---|
+| OpenAI | `https://api.openai.com/v1` | https://platform.openai.com/api-keys (cần nạp credit API; gói ChatGPT không kèm quota API) |
+| OpenRouter | `https://openrouter.ai/api/v1` | https://openrouter.ai/settings/keys |
+| Groq | `https://api.groq.com/openai/v1` | https://console.groq.com/keys |
+
+Gateway khác cũng dùng được nếu tương thích OpenAI, nghĩa là có `GET /models` và `POST /chat/completions`.
+
+Code được viết theo chuẩn OpenAI Chat Completions, có dùng JSON mode và tools. Không phải model nào cũng hỗ trợ đủ hai tính năng này, nên luôn thử `mode: tools` trước buổi demo.
+
+**4. Điền URL và key, để trống model.** Ví dụ:
 
 ```text
 GATEWAY_BASE_URL=https://api.openai.com/v1
-GATEWAY_API_KEY=<key của bạn>
-GATEWAY_MODEL=<model ID gateway hỗ trợ>
+GATEWAY_API_KEY=sk-...dán-nguyên-key...
+GATEWAY_MODEL=
 ```
 
-**3. Lưu file và khởi động lại service:** Ctrl+C ở terminal service, rồi chạy lại lệnh ở bước 4.
+Quy tắc điền:
+
+- Mỗi biến nằm trên một dòng.
+- Viết ngay sau dấu `=`, không có dấu cách.
+- Không bọc giá trị trong dấu nháy.
+- Không xuống dòng giữa chừng key.
+
+**5. Lấy model ID.** Lưu file, rồi chạy:
+
+```bash
+bash start.sh --models        # macOS / Linux
+```
+
+```powershell
+.\start.bat --models          # Windows
+```
+
+Lệnh in danh sách model mà key của bạn dùng được. Lệnh **không** in key ra màn hình.
+
+Chép một ID trong danh sách vào `GATEWAY_MODEL=`, rồi lưu file.
+
+Nếu lệnh báo `HTTP 401`, key sai hoặc đã bị thu hồi. Nếu báo `Không kết nối được`, Base URL sai hoặc máy mất mạng.
+
+**6. Chạy lại service** bằng `bash start.sh` (Windows: `.\start.bat`).
 
 **Kết quả mong đợi:** góc trên phải trang http://127.0.0.1:8000 hiện `<model> · từ .env`.
 
-Nếu URL không phải HTTPS công khai, hoặc thiếu key, service sẽ dừng ngay khi khởi động và báo tên trường sai (`base_url` hoặc `api_key`).
+Nếu URL không phải HTTPS công khai, hoặc đã điền URL mà thiếu key, script sẽ dừng ở bước kiểm thử và báo tên trường sai (`base_url` hoặc `api_key`).
 
 `.env` đã có trong `.gitignore` nên không bị đẩy lên GitHub. Đừng gửi file này cho người khác, và đừng mở nó khi đang chia sẻ màn hình.
 
