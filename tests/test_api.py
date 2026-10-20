@@ -9,6 +9,25 @@ from app.services import ai_gateway, extraction, inventory
 
 
 class ServiceTests(unittest.TestCase):
+    def test_swagger_only_injects_admin_token_for_local_requests(self):
+        async def local_app(scope, receive, send):
+            scope['client'] = ('127.0.0.1', 1234)
+            await app(scope, receive, send)
+        client = TestClient(local_app)
+        page = client.get('/docs')
+        self.assertEqual(page.status_code, 200)
+        self.assertIn('requestInterceptor:', page.text)
+        self.assertIn(ai_gateway.ADMIN_TOKEN, page.text)
+        self.assertEqual(page.headers['cache-control'], 'no-store')
+        self.assertEqual(page.headers['x-frame-options'], 'DENY')
+        for headers in ({'X-Forwarded-For': '203.0.113.5'}, {'Forwarded': 'for=203.0.113.5'}):
+            self.assertNotIn(ai_gateway.ADMIN_TOKEN, client.get('/docs', headers=headers).text)
+            self.assertEqual(client.post('/api/gateway/select', json={'model': 'm'},
+                headers={**headers, 'X-Gateway-Token': ai_gateway.ADMIN_TOKEN}).status_code, 403)
+        self.assertNotIn(ai_gateway.ADMIN_TOKEN, TestClient(app).get('/docs').text)
+        self.assertNotIn(ai_gateway.ADMIN_TOKEN, client.get('/openapi.json').text)
+        self.assertEqual(client.post('/api/gateway/select', json={'model': 'm'}).status_code, 403)
+
     def test_gateway_configuration_blocks_remote_clients(self):
         client = TestClient(app)
         self.assertEqual(client.post('/api/gateway/models', json={'base_url': 'https://gateway.example/v1', 'api_key': 'secret'}).status_code, 403)
