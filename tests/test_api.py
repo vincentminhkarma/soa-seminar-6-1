@@ -77,6 +77,9 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(data['result']['reply'], 'Còn phòng Deluxe.')
         self.assertEqual(len(data['requests']), 3)
         self.assertIn('tools', data['requests'][1])
+        for step in data['requests'][1:]:
+            self.assertNotEqual(step['messages'][0]['content'], 'Chỉ trả JSON.')
+        self.assertIn('check_room_availability', data['requests'][1]['messages'][0]['content'])
         self.assertEqual(data['requests'][2]['messages'][-2]['role'], 'tool')
 
     def test_missing_fields_are_not_invented(self):
