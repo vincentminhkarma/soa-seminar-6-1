@@ -11,7 +11,7 @@ HOST = '127.0.0.1'  # chỉ máy này gọi trực tiếp; máy khác đi qua ng
 PORT = 8000         # đổi cổng thì đổi luôn: ngrok http <PORT>, @base trong client/demo.http, --base của experiment.py
 # Khách mở link ngrok được gọi openai/tools tổng cộng bao nhiêu lượt (dùng key của bạn, tính phí).
 # 0 = khách chỉ dùng regex. Lượt đếm chung cho mọi khách, về 0 khi chạy lại service. Gọi trên máy bạn không bị tính.
-PUBLIC_AI_LIMIT = 0
+PUBLIC_AI_LIMIT = 20
 
 # --- Gateway AI: giá trị bí mật nằm trong file .env ở thư mục gốc (không lên GitHub) ----
 ENV_FILE = Path(__file__).resolve().parent.parent / '.env'
